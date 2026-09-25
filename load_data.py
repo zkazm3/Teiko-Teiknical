@@ -1,5 +1,9 @@
 import pandas as pd
 import sqlite3
+import matplotlib.pyplot as plt
+import seaborn as sns
+import scipy
+from scipy import stats
 
 
 cd = pd.read_csv("data/cell-count.csv")
@@ -89,11 +93,6 @@ cell_data.to_sql(
 
 
 
-connection.commit()
-connection.close()
-
-
-
 #Part 2
 
 connection = sqlite3.connect("cells.db")
@@ -114,3 +113,102 @@ summary_df = pd.read_sql_query(p2query, connection)
 
 print(summary_df.head(10))
 
+
+#Part 3
+
+
+
+p3query = """
+    SELECT
+        samples.sample,
+        sample_type,
+        ROUND((cell_count * 100.0) / SUM(cell_count) OVER(PARTITION BY samples.sample), 2) AS frequency,
+        condition,
+        response,
+        treatment,
+        cell_type
+        FROM samples
+        
+
+        
+        JOIN subjects
+            ON samples.subject = subjects.subject
+
+
+        JOIN cell_counts
+            ON samples.sample = cell_counts.sample
+
+        WHERE sample_type = 'PBMC'
+        AND treatment = 'miraclib'
+        AND condition = 'melanoma'
+
+"""
+
+p3_df = pd.read_sql_query(p3query, connection)
+
+cdplot = sns.boxplot(data=p3_df, x = "cell_type", y = "frequency", hue = "response", hue_order = ["no", "yes"])
+plt.title("Relative Immune Cell Frequencies of Melanoma Patients Under Miraclib Treatment", fontsize=10)
+plt.xlabel("Immune Cell Population")
+plt.ylabel("Relative Frequency (%)")
+
+handles, labels = cdplot.get_legend_handles_labels()
+
+cdplot.legend(handles, ["Nonresponder", "Responder"], title = "Treatment Response")
+
+plt.savefig("testBoxPLot.png")
+
+b_cell_response = p3_df[(p3_df["response"] == "yes") & (p3_df["cell_type"] == "b_cell")]["frequency"]
+b_cell_nonresponse = p3_df[(p3_df["response"] == "no") & (p3_df["cell_type"] == "b_cell")]["frequency"]
+
+cd8_response = p3_df[(p3_df["response"] == "yes") & (p3_df["cell_type"] == "cd8_t_cell")]["frequency"]
+cd8_nonresponse = p3_df[(p3_df["response"] == "no") & (p3_df["cell_type"] == "cd8_t_cell")]["frequency"]
+
+cd4_response = p3_df[(p3_df["response"] == "yes") & (p3_df["cell_type"] == "cd4_t_cell")]["frequency"]
+cd4_nonresponse = p3_df[(p3_df["response"] == "no") & (p3_df["cell_type"] == "cd4_t_cell")]["frequency"]
+
+nk_response = p3_df[(p3_df["response"] == "yes") & (p3_df["cell_type"] == "nk_cell")]["frequency"]
+nk_nonresponse = p3_df[(p3_df["response"] == "no") & (p3_df["cell_type"] == "nk_cell")]["frequency"]
+
+mono_response = p3_df[(p3_df["response"] == "yes") & (p3_df["cell_type"] == "monocyte")]["frequency"]
+mono_nonresponse = p3_df[(p3_df["response"] == "no") & (p3_df["cell_type"] == "monocyte")]["frequency"]
+
+#t_stat, p_value = stats.ttest_ind(b_cell_nonresponse, b_cell_response, equal_var = False)
+
+#Bonferroni correction since the amount of tests run is 5 (very little)
+og_p = 0.05
+num_tests = 5
+bonferroni_p = og_p/num_tests
+
+
+cell_responses = { 
+    "b_cell": (b_cell_response, b_cell_nonresponse),
+    "cd8_t_cell": (cd8_response, cd8_nonresponse),
+    "cd4_t_cell": (cd4_response, cd4_nonresponse),
+    "nk_cell": (nk_response, nk_nonresponse),
+    "monocyte": (mono_response, mono_nonresponse)
+}
+
+stat_results =  []
+
+for c in cell_responses:
+    t_stat,  p_value = stats.ttest_ind(cell_responses[c][0], cell_responses[c][1], equal_var = False)
+    stat_results.append({
+
+        "cell_type": c,
+        "t_statistic": t_stat,
+        "p_value": p_value,
+        "significant": p_value < bonferroni_p
+    })
+
+    print(f"\nCell Type: {c}")
+    print(f"t-statistic: {t_stat}")
+    print(f"p-value: {p_value}")
+
+    if p_value < bonferroni_p :
+        print("Statistically significant")
+    else:
+        print("Not statistically significant")
+    
+
+stats_df = pd.DataFrame(stat_results)
+print(stats_df)
