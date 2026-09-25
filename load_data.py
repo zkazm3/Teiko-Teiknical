@@ -200,6 +200,7 @@ for c in cell_responses:
         "significant": p_value < bonferroni_p
     })
 
+
     print(f"\nCell Type: {c}")
     print(f"t-statistic: {t_stat}")
     print(f"p-value: {p_value}")
@@ -208,9 +209,17 @@ for c in cell_responses:
         print("Statistically significant")
     else:
         print("Not statistically significant")
-    
 
 stats_df = pd.DataFrame(stat_results)
+
+stats_df.to_sql(
+    "part3_statistics",
+    connection,
+    if_exists="replace",
+    index=False
+)
+
+connection.commit()
 
 #Part 4:
 
