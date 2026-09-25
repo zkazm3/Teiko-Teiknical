@@ -7,4 +7,4 @@ pipeline:
 	python load_data.py
 
 dashboard:
-	streamlit run dashboard/app.py
+	python -m streamlit run dashboard/app.py
