@@ -2,7 +2,7 @@
 Technical Exam for Teiko
 
 ## How to Run This Project
-This project runs on GitHub Codespaces, which means you don't need to do much once you open the repository
+This project runs on GitHub Codespaces, which means you don't need to do much once you open the repository. To do so, click on the green Code button and go to the Codespaces tab and open a codespace from main.
 
 ## Once Your Repository is Open...
 1. Go to the root directory of your repository and type 'make setup' in the terminal.
