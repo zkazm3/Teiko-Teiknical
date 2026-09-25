@@ -211,4 +211,79 @@ for c in cell_responses:
     
 
 stats_df = pd.DataFrame(stat_results)
-print(stats_df)
+
+#Part 4:
+
+
+p4query = """
+    SELECT
+        subjects.subject,
+        subjects.project,
+        condition,
+        treatment,
+        age,
+        sex,
+        response,
+        sample_type,
+        time_from_treatment_start,
+        samples.sample
+    FROM subjects
+
+    JOIN samples
+        ON subjects.subject = samples.subject
+
+    WHERE sample_type = "PBMC"
+        AND condition = "melanoma"
+        AND time_from_treatment_start = 0
+        AND treatment = "miraclib"
+
+    """
+
+
+p4_df = pd.read_sql_query(p4query, connection)
+
+
+
+project_samples =  p4_df["project"].value_counts()
+print(project_samples)
+
+response_counts = (
+    p4_df.groupby("response")["subject"].nunique()
+)
+
+sex_counts = (
+    p4_df.groupby("sex")["subject"].nunique()
+)
+print(sex_counts)
+
+answer = """
+        SELECT
+            AVG(cell_counts.cell_count) AS average_b_cell_count
+
+        FROM subjects
+
+        JOIN samples
+            ON subjects.subject = samples.subject
+
+        JOIN cell_counts
+            ON samples.sample = cell_counts.sample
+        
+        WHERE condition = "melanoma"
+        AND sex = "M"
+        AND response = "yes"
+        AND time_from_treatment_start  = 0
+        AND cell_type = "b_cell"
+
+    
+    """
+
+answer_df = pd.read_sql_query(answer, connection)
+
+print(answer_df)
+
+
+
+
+
+
+
